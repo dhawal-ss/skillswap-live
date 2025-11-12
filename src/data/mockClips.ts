@@ -1,0 +1,40 @@
+import type { SkillClip } from '../types';
+
+export const mockClips: SkillClip[] = [
+  {
+    id: 'clip-101',
+    title: '3 travel phrases locals actually use',
+    creatorId: 'creator-lucia',
+    previewUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80',
+    duration: 42,
+    likes: 1200,
+    comments: 188,
+    saves: 320,
+    tags: ['languages'],
+    ctaSessionId: 'sess-001',
+  },
+  {
+    id: 'clip-202',
+    title: 'Pour-over bloom timing demo',
+    creatorId: 'creator-sambrew',
+    previewUrl: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=800&q=80',
+    duration: 35,
+    likes: 980,
+    comments: 142,
+    saves: 260,
+    tags: ['cooking'],
+    ctaSessionId: 'sess-002',
+  },
+  {
+    id: 'clip-303',
+    title: 'Layering rain sounds in 2 clicks',
+    creatorId: 'creator-nara',
+    previewUrl: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=800&q=80',
+    duration: 58,
+    likes: 1420,
+    comments: 210,
+    saves: 510,
+    tags: ['music', 'technology'],
+    ctaSessionId: 'sess-003',
+  },
+];
