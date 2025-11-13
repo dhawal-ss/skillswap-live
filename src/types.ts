@@ -5,7 +5,10 @@ export type SkillTag =
   | 'diy'
   | 'productivity'
   | 'wellness'
-  | 'technology';
+  | 'technology'
+  | 'artDesign'
+  | 'businessFinance'
+  | 'martialArts';
 
 export interface UserProfile {
   name: string;
@@ -14,7 +17,17 @@ export interface UserProfile {
   teachTags: SkillTag[];
   availability: string[]; // e.g., ['Morning', 'Evening']
   bio?: string;
+  avatarUrl?: string;
 }
+
+export type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+  provider: 'email';
+  age?: number;
+  avatarUrl?: string;
+};
 
 export interface SessionCard {
   id: string;
@@ -22,6 +35,7 @@ export interface SessionCard {
   tag: SkillTag;
   host: string;
   hostAvatar: string;
+  demoVideoUrl?: string;
   language: string;
   startTime: string;
   duration: number;
@@ -48,10 +62,12 @@ export interface SkillClip {
   title: string;
   creatorId: string;
   previewUrl: string;
+  videoUrl?: string;
   duration: number;
   likes: number;
   comments: number;
   saves: number;
+  views?: number;
   tags: SkillTag[];
   ctaSessionId?: string;
 }

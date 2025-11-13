@@ -1,15 +1,23 @@
 import { useMemo, useState } from 'react';
 import { followCreator } from '../services/api';
-import type { CreatorProfile, SkillClip } from '../types';
+import { Skeleton } from './Skeleton';
+import type { CreatorProfile, SkillClip, SkillTag } from '../types';
 
 interface Props {
   creators: CreatorProfile[];
   clips: SkillClip[];
   searchQuery?: string;
-  categoryFilter?: string | null;
+  categoryFilter?: 'all' | SkillTag | null;
+  isLoading?: boolean;
 }
 
-export function ChannelHub({ creators, clips, searchQuery = '', categoryFilter = null }: Props) {
+export function ChannelHub({
+  creators,
+  clips,
+  searchQuery = '',
+  categoryFilter = null,
+  isLoading = false,
+}: Props) {
   const [following, setFollowing] = useState<Set<string>>(new Set());
 
   const clipCountByCreator = useMemo(() => {
@@ -25,7 +33,7 @@ export function ChannelHub({ creators, clips, searchQuery = '', categoryFilter =
       const matchesCategory =
         !categoryFilter ||
         categoryFilter === 'all' ||
-        creator.specialty.includes(categoryFilter);
+        creator.specialty.includes(categoryFilter as SkillTag);
       const matchesSearch =
         !normalized ||
         creator.name.toLowerCase().includes(normalized) ||
@@ -51,10 +59,53 @@ export function ChannelHub({ creators, clips, searchQuery = '', categoryFilter =
     }
   };
 
+  if (isLoading) {
+    return (
+      <section style={{ padding: '32px 24px 80px', maxWidth: 1100, margin: '0 auto' }}>
+        <header style={{ marginBottom: 24 }}>
+          <p style={{ color: 'var(--color-text-meta)', margin: 0 }}>Creator channels</p>
+          <h2 style={{ margin: '8px 0 0' }}>Follow hosts you vibe with.</h2>
+        </header>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: 20,
+          }}
+        >
+          {Array.from({ length: 6 }).map((_, index) => (
+            <article
+              key={`hub-skeleton-${index}`}
+              style={{
+                padding: 20,
+                borderRadius: 20,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface)',
+                display: 'grid',
+                gap: 12,
+              }}
+            >
+              <div style={{ display: 'flex', gap: 12 }}>
+                <Skeleton width={60} height={60} borderRadius={30} />
+                <div style={{ flex: 1 }}>
+                  <Skeleton width="60%" height={16} />
+                  <Skeleton width="80%" height={14} />
+                </div>
+              </div>
+              <Skeleton width="70%" height={14} />
+              <Skeleton width="40%" height={14} />
+              <Skeleton width="50%" height={32} borderRadius={12} />
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section style={{ padding: '32px 24px 80px', maxWidth: 1100, margin: '0 auto' }}>
       <header style={{ marginBottom: 24 }}>
-        <p style={{ color: '#94a3b8', margin: 0 }}>Creator channels</p>
+        <p style={{ color: 'var(--color-text-meta)', margin: 0 }}>Creator channels</p>
         <h2 style={{ margin: '8px 0 0' }}>Follow hosts you vibe with.</h2>
       </header>
       <div
@@ -64,14 +115,17 @@ export function ChannelHub({ creators, clips, searchQuery = '', categoryFilter =
           gap: 20,
         }}
       >
+        {filteredCreators.length === 0 && (
+          <p style={{ color: 'var(--color-text-subtle)' }}>No creators match those filters yet.</p>
+        )}
         {filteredCreators.map((creator) => (
           <article
             key={creator.id}
             style={{
               padding: 20,
               borderRadius: 20,
-              border: '1px solid #e2e8f0',
-              background: '#fff',
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-surface)',
               display: 'grid',
               gap: 12,
             }}
@@ -86,10 +140,10 @@ export function ChannelHub({ creators, clips, searchQuery = '', categoryFilter =
               />
               <div>
                 <strong>{creator.name}</strong>
-                <p style={{ margin: 0, color: '#64748b' }}>{creator.bio}</p>
+                <p style={{ margin: 0, color: 'var(--color-text-subtle)' }}>{creator.bio}</p>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 16, fontSize: 13, color: '#475569' }}>
+            <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--color-text-muted)' }}>
               <span>{creator.followers.toLocaleString()} followers</span>
               <span>{creator.upcomingSessions} upcoming</span>
               <span>{clipCountByCreator[creator.id] ?? 0} clips</span>
@@ -100,10 +154,10 @@ export function ChannelHub({ creators, clips, searchQuery = '', categoryFilter =
                   key={tag}
                   style={{
                     borderRadius: 999,
-                    border: '1px solid #cbd5f5',
+                    border: '1px solid var(--color-border-strong)',
                     padding: '6px 12px',
                     fontSize: 12,
-                    color: '#475569',
+                    color: 'var(--color-text-muted)',
                   }}
                 >
                   {tag}
@@ -113,17 +167,17 @@ export function ChannelHub({ creators, clips, searchQuery = '', categoryFilter =
             <button
               type="button"
               onClick={() => toggleFollow(creator.id)}
-              style={{
-                borderRadius: 14,
-                border: 'none',
-                padding: '12px 18px',
-                background: following.has(creator.id) ? '#e0e7ff' : '#0f172a',
-                color: following.has(creator.id) ? '#312e81' : '#fff',
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}
-            >
-              {following.has(creator.id) ? 'Following' : 'Follow'}
+            style={{
+              borderRadius: 14,
+              border: 'none',
+              padding: '12px 18px',
+              background: following.has(creator.id) ? 'var(--color-pill-bg)' : 'var(--color-text-primary)',
+              color: following.has(creator.id) ? 'var(--color-brand)' : 'var(--color-contrast-on-accent)',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            {following.has(creator.id) ? 'Following' : 'Follow'}
             </button>
           </article>
         ))}

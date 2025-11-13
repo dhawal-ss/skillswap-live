@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import type { SessionCard } from '../types';
+import { SESSION_VIDEO_PLACEHOLDER } from '../lib/media';
 
 interface Props {
   session: SessionCard;
@@ -12,6 +13,14 @@ export function SessionRoom({ session, onLeave }: Props) {
   const [captions, setCaptions] = useState(true);
   const [notes, setNotes] = useState('');
   const [reaction, setReaction] = useState<string | null>(null);
+  const [pipMode, setPipMode] = useState(false);
+  const pipSource = session.demoVideoUrl ?? SESSION_VIDEO_PLACEHOLDER;
+  const reactionOptions = [
+    { emoji: '👏', label: 'Send clap reaction' },
+    { emoji: '🔥', label: 'Send fire reaction' },
+    { emoji: '💡', label: 'Send idea reaction' },
+    { emoji: '❤️', label: 'Send heart reaction' },
+  ];
 
   const triggerReaction = (emoji: string) => {
     setReaction(emoji);
@@ -30,25 +39,41 @@ export function SessionRoom({ session, onLeave }: Props) {
     >
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <p style={{ margin: 0, color: '#94a3b8' }}>Live with {session.host}</p>
+          <p style={{ margin: 0, color: 'var(--color-text-meta)' }}>Live with {session.host}</p>
           <h2 style={{ margin: '8px 0' }}>{session.title}</h2>
-          <p style={{ margin: 0, color: '#475569' }}>{session.language}</p>
+          <p style={{ margin: 0, color: 'var(--color-text-muted)' }}>{session.language}</p>
         </div>
-        <button
-          type="button"
-          onClick={onLeave}
-          style={{
-            border: 'none',
-            background: '#dc2626',
-            color: '#fff',
-            padding: '12px 24px',
-            borderRadius: 14,
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Leave session
-        </button>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button
+            type="button"
+            onClick={() => setPipMode((prev) => !prev)}
+            style={{
+              border: '1px solid var(--color-border)',
+              background: 'transparent',
+              color: 'var(--color-text-primary)',
+              padding: '10px 16px',
+              borderRadius: 12,
+              cursor: 'pointer',
+            }}
+          >
+            {pipMode ? 'Exit mini view' : 'PiP view'}
+          </button>
+          <button
+            type="button"
+            onClick={onLeave}
+            style={{
+              border: 'none',
+              background: 'var(--color-danger)',
+              color: 'var(--color-text-inverse)',
+              padding: '12px 24px',
+              borderRadius: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Leave session
+          </button>
+        </div>
       </header>
 
       <div
@@ -61,47 +86,78 @@ export function SessionRoom({ session, onLeave }: Props) {
       >
         <div
           style={{
-            background: '#0f172a',
+            background: 'var(--color-video-surface)',
             borderRadius: 24,
-            position: 'relative',
-            color: '#fff',
+            position: pipMode ? 'relative' : 'relative',
+            color: 'var(--color-text-inverse)',
             padding: 24,
             overflow: 'hidden',
           }}
         >
+          {pipMode && (
+            <div className="pip-video">
+              <video
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                controls
+                muted={muted}
+                autoPlay
+                loop
+                playsInline
+              >
+                <source src={pipSource} type="video/mp4" />
+              </video>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
             <span>{cameraOff ? 'Camera paused' : 'Camera live'}</span>
             <span>{muted ? 'Muted' : 'Mic live'}</span>
           </div>
           <div
             style={{
-              background:
-                'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.25), transparent 55%)',
               borderRadius: 18,
               height: '100%',
-              display: 'grid',
-              placeItems: 'center',
-              fontSize: '1.5rem',
+              overflow: 'hidden',
+              position: 'relative',
+              background: 'var(--color-video-surface)',
             }}
           >
             {cameraOff ? (
-              <div style={{ textAlign: 'center' }}>
+              <div
+                style={{
+                  textAlign: 'center',
+                  color: 'var(--color-text-inverse)',
+                  display: 'grid',
+                  placeContent: 'center',
+                  height: '100%',
+                  padding: 16,
+                }}
+              >
                 <p style={{ marginBottom: 8 }}>You look great. Camera resumes when you’re ready.</p>
                 <p style={{ fontSize: '4rem', margin: 0 }}>📷</p>
               </div>
             ) : (
-              <p>Video stream placeholder</p>
+              <video
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                muted={muted}
+                autoPlay
+                playsInline
+                loop
+                aria-label={`${session.title} stream preview`}
+                poster={session.hostAvatar}
+              >
+                <source src={pipSource} type="video/mp4" />
+              </video>
             )}
           </div>
 
           {reaction && (
             <div
+              className="reaction-burst"
               style={{
                 position: 'absolute',
                 top: 24,
                 right: 24,
                 fontSize: '2.5rem',
-                animation: 'float 1.5s ease-out forwards',
               }}
             >
               {reaction}
@@ -113,9 +169,9 @@ export function SessionRoom({ session, onLeave }: Props) {
           <div
             style={{
               borderRadius: 20,
-              border: '1px solid #e2e8f0',
+              border: '1px solid var(--color-border)',
               padding: 20,
-              background: '#fff',
+              background: 'var(--color-surface)',
             }}
           >
             <p style={{ marginTop: 0, fontWeight: 600 }}>Shared notes</p>
@@ -123,47 +179,52 @@ export function SessionRoom({ session, onLeave }: Props) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Drop vocab, links, or steps here."
+              aria-label="Shared notes"
               style={{
                 width: '100%',
                 minHeight: 160,
                 borderRadius: 12,
-                border: '1px solid #cbd5f5',
+                border: '1px solid var(--color-border-strong)',
                 padding: 12,
                 resize: 'vertical',
+                background: 'var(--color-surface)',
+                color: 'var(--color-text-primary)',
               }}
             />
           </div>
           <div style={{ display: 'grid', gap: 12 }}>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button
-                type="button"
-                onClick={() => setMuted((prev) => !prev)}
-                style={controlStyle}
-              >
-                {muted ? 'Unmute' : 'Mute'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setCameraOff((prev) => !prev)}
-                style={controlStyle}
-              >
-                {cameraOff ? 'Start camera' : 'Stop camera'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setCaptions((prev) => !prev)}
-                style={controlStyle}
-              >
-                {captions ? 'Hide captions' : 'Show captions'}
-              </button>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {[
+                {
+                  icon: muted ? '🔇' : '🎙',
+                  label: muted ? 'Unmute' : 'Mute',
+                  action: () => setMuted((prev) => !prev),
+                },
+                {
+                  icon: cameraOff ? '🎥' : '📷',
+                  label: cameraOff ? 'Start camera' : 'Stop camera',
+                  action: () => setCameraOff((prev) => !prev),
+                },
+                {
+                  icon: '💬',
+                  label: captions ? 'Hide captions' : 'Show captions',
+                  action: () => setCaptions((prev) => !prev),
+                },
+              ].map((control) => (
+                <button key={control.label} type="button" onClick={control.action} style={controlStyle}>
+                  <span aria-hidden="true">{control.icon}</span>
+                  {control.label}
+                </button>
+              ))}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              {['👏', '🔥', '💡', '❤️'].map((emoji) => (
+              {reactionOptions.map(({ emoji, label }) => (
                 <button
                   key={emoji}
                   type="button"
                   onClick={() => triggerReaction(emoji)}
-                  style={{ ...controlStyle, flex: 1 }}
+                  aria-label={label}
+                  style={{ ...controlStyle, flex: 1, justifyContent: 'center' }}
                 >
                   {emoji}
                 </button>
@@ -176,11 +237,15 @@ export function SessionRoom({ session, onLeave }: Props) {
   );
 }
 
-const controlStyle: React.CSSProperties = {
+const controlStyle: CSSProperties = {
   flex: 1,
   borderRadius: 14,
-  border: '1px solid #cbd5f5',
-  background: '#fff',
+  border: '1px solid var(--color-border-strong)',
+  background: 'var(--color-surface)',
   padding: '10px 16px',
   cursor: 'pointer',
+  color: 'var(--color-text-primary)',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
 };

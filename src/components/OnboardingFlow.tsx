@@ -1,24 +1,22 @@
 import { useMemo, useState } from 'react';
+import { Logo } from './Logo';
 import type { SkillTag, UserProfile } from '../types';
+import { orderedSkillTags, skillTagLabels } from '../lib/tagLabels';
 
-const skillCatalog: { label: string; value: SkillTag }[] = [
-  { label: 'Languages', value: 'languages' },
-  { label: 'Cooking & Food', value: 'cooking' },
-  { label: 'Music & Audio', value: 'music' },
-  { label: 'DIY & Fixes', value: 'diy' },
-  { label: 'Productivity', value: 'productivity' },
-  { label: 'Wellness', value: 'wellness' },
-  { label: 'Technology', value: 'technology' },
-];
+const skillCatalog: { label: string; value: SkillTag }[] = orderedSkillTags.map((tag) => ({
+  label: skillTagLabels[tag],
+  value: tag,
+}));
 
 const availabilityOptions = ['Morning', 'Midday', 'Evening', 'Weekend'];
 
 interface Props {
   onComplete: (profile: UserProfile) => void;
+  defaultName: string;
 }
 
 const chipBase = {
-  border: '1px solid #cbd5f5',
+  border: '1px solid var(--color-border-strong)',
   borderRadius: '999px',
   padding: '8px 16px',
   cursor: 'pointer',
@@ -39,8 +37,8 @@ function ToggleChip({
       onClick={onClick}
       style={{
         ...chipBase,
-        background: active ? '#1d4ed8' : '#fff',
-        color: active ? '#fff' : '#0f172a',
+        background: active ? 'var(--color-accent-primary)' : 'var(--color-surface)',
+        color: active ? 'var(--color-contrast-on-accent)' : 'var(--color-text-primary)',
         fontWeight: 500,
       }}
     >
@@ -49,8 +47,7 @@ function ToggleChip({
   );
 }
 
-export function OnboardingFlow({ onComplete }: Props) {
-  const [name, setName] = useState('');
+export function OnboardingFlow({ onComplete, defaultName }: Props) {
   const [learnTags, setLearnTags] = useState<SkillTag[]>(['languages']);
   const [teachTags, setTeachTags] = useState<SkillTag[]>([]);
   const [availability, setAvailability] = useState<string[]>(['Evening']);
@@ -69,7 +66,7 @@ export function OnboardingFlow({ onComplete }: Props) {
     );
   };
 
-  const canProceed = name.trim().length >= 2 && learnTags.length > 0;
+  const canProceed = learnTags.length > 0;
 
   return (
     <section
@@ -81,34 +78,36 @@ export function OnboardingFlow({ onComplete }: Props) {
         gap: '32px',
       }}
     >
+      <Logo size="lg" tagline="Beta" align="center" />
       <div>
-        <p style={{ textTransform: 'uppercase', letterSpacing: 2, color: '#64748b' }}>
+        <p style={{ textTransform: 'uppercase', letterSpacing: 2, color: 'var(--color-text-subtle)' }}>
           Welcome to SkillSwap Live
         </p>
         <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', margin: '16px 0' }}>
           Learn something new in the next 10 minutes.
         </h1>
-        <p style={{ color: '#475569', maxWidth: 520 }}>
+        <p style={{ color: 'var(--color-text-muted)', maxWidth: 520 }}>
           Set your intent so we can match you with the right person, across time zones and
           languages.
         </p>
       </div>
 
       <div style={{ display: 'grid', gap: 24 }}>
-        <label style={{ display: 'grid', gap: 8 }}>
-          <span style={{ fontWeight: 600 }}>What should we call you?</span>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Add a friendly name"
+        <div style={{ display: 'grid', gap: 6 }}>
+          <span style={{ fontWeight: 600 }}>Signed in as</span>
+          <div
             style={{
               padding: '14px 16px',
               borderRadius: 14,
-              border: '1px solid #cbd5f5',
+              border: '1px solid var(--color-border-strong)',
               fontSize: 16,
+              background: 'var(--color-surface)',
+              color: 'var(--color-text-primary)',
             }}
-          />
-        </label>
+          >
+            {defaultName}
+          </div>
+        </div>
 
         <div>
           <p style={{ fontWeight: 600, marginBottom: 12 }}>Skills you want to learn</p>
@@ -136,7 +135,7 @@ export function OnboardingFlow({ onComplete }: Props) {
               />
             ))}
           </div>
-          <p style={{ color: '#94a3b8', marginTop: 8 }}>Optional, you can update later.</p>
+          <p style={{ color: 'var(--color-text-meta)', marginTop: 8 }}>Optional, you can update later.</p>
         </div>
 
         <div>
@@ -151,7 +150,7 @@ export function OnboardingFlow({ onComplete }: Props) {
               />
             ))}
           </div>
-          <p style={{ color: '#475569', marginTop: 8 }}>Timezone detected: {timezone}</p>
+          <p style={{ color: 'var(--color-text-muted)', marginTop: 8 }}>Timezone detected: {timezone}</p>
         </div>
       </div>
 
@@ -160,7 +159,7 @@ export function OnboardingFlow({ onComplete }: Props) {
         disabled={!canProceed}
         onClick={() =>
           onComplete({
-            name,
+            name: defaultName,
             timezone,
             learnTags,
             teachTags,
@@ -172,8 +171,8 @@ export function OnboardingFlow({ onComplete }: Props) {
           borderRadius: 18,
           padding: '18px 32px',
           fontSize: 18,
-          background: canProceed ? '#1e1b4b' : '#cbd5f5',
-          color: canProceed ? '#fff' : '#94a3b8',
+          background: canProceed ? 'var(--color-brand)' : 'var(--color-disabled-bg)',
+          color: canProceed ? 'var(--color-contrast-on-accent)' : 'var(--color-disabled-text)',
           cursor: canProceed ? 'pointer' : 'not-allowed',
           width: 'fit-content',
           justifySelf: 'flex-end',

@@ -31,9 +31,9 @@ export function FeedbackSheet({ session, onSubmit }: Props) {
       }}
     >
       <div>
-        <p style={{ color: '#94a3b8', margin: 0 }}>How was your exchange with</p>
+        <p style={{ color: 'var(--color-text-meta)', margin: 0 }}>How was your exchange with</p>
         <h2 style={{ margin: '8px 0 0' }}>{session.host}</h2>
-        <p style={{ color: '#475569' }}>{session.title}</p>
+        <p style={{ color: 'var(--color-text-muted)' }}>{session.title}</p>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
@@ -46,8 +46,8 @@ export function FeedbackSheet({ session, onSubmit }: Props) {
               width: 54,
               height: 54,
               borderRadius: '50%',
-              border: '2px solid #cbd5f5',
-              background: rating >= value ? '#fde047' : '#fff',
+              border: '2px solid var(--color-border-strong)',
+              background: rating >= value ? 'var(--color-warning)' : 'var(--color-surface)',
               fontSize: 18,
               cursor: 'pointer',
             }}
@@ -65,17 +65,17 @@ export function FeedbackSheet({ session, onSubmit }: Props) {
               key={tag}
               type="button"
               onClick={() => toggleTag(tag)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: 999,
-                border: '1px solid #cbd5f5',
-                background: activeTags.includes(tag) ? '#1d4ed8' : '#fff',
-                color: activeTags.includes(tag) ? '#fff' : '#0f172a',
-                cursor: 'pointer',
-              }}
-            >
-              {tag}
-            </button>
+            style={{
+              padding: '8px 16px',
+              borderRadius: 999,
+              border: '1px solid var(--color-border-strong)',
+              background: activeTags.includes(tag) ? 'var(--color-accent-primary)' : 'var(--color-surface)',
+              color: activeTags.includes(tag) ? 'var(--color-contrast-on-accent)' : 'var(--color-text-primary)',
+              cursor: 'pointer',
+            }}
+          >
+            {tag}
+          </button>
           ))}
         </div>
       </div>
@@ -86,9 +86,11 @@ export function FeedbackSheet({ session, onSubmit }: Props) {
         onChange={(e) => setNotes(e.target.value)}
         style={{
           borderRadius: 16,
-          border: '1px solid #cbd5f5',
+          border: '1px solid var(--color-border-strong)',
           padding: 16,
           minHeight: 140,
+          background: 'var(--color-surface)',
+          color: 'var(--color-text-primary)',
         }}
       />
 
@@ -100,8 +102,8 @@ export function FeedbackSheet({ session, onSubmit }: Props) {
           padding: '16px 32px',
           borderRadius: 18,
           border: 'none',
-          background: rating ? '#0f172a' : '#cbd5f5',
-          color: rating ? '#fff' : '#94a3b8',
+          background: rating ? 'var(--color-text-primary)' : 'var(--color-disabled-bg)',
+          color: rating ? 'var(--color-contrast-on-accent)' : 'var(--color-text-meta)',
           fontSize: 18,
           cursor: rating ? 'pointer' : 'not-allowed',
           justifySelf: 'center',

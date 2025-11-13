@@ -21,10 +21,11 @@ export function CommentsDrawer({ comments, open, onClose }: Props) {
       }}
     >
       <div
+        className="glass-surface"
         style={{
           width: 'min(520px, 90vw)',
           maxHeight: '70vh',
-          background: '#fff',
+          background: 'var(--color-surface)',
           borderRadius: 20,
           padding: 24,
           overflowY: 'auto',
@@ -37,7 +38,7 @@ export function CommentsDrawer({ comments, open, onClose }: Props) {
             onClick={onClose}
             style={{
               border: 'none',
-              background: '#e2e8f0',
+              background: 'var(--color-border)',
               padding: '6px 12px',
               borderRadius: 12,
               cursor: 'pointer',
@@ -46,13 +47,13 @@ export function CommentsDrawer({ comments, open, onClose }: Props) {
             Close
           </button>
         </div>
-        <p style={{ color: '#64748b', marginTop: 4 }}>Tap questions to answer them live.</p>
+        <p style={{ color: 'var(--color-text-subtle)', marginTop: 4 }}>Tap questions to answer them live.</p>
         <div style={{ display: 'grid', gap: 16, marginTop: 16 }}>
           {comments.map((comment) => (
             <article
               key={comment.id}
               style={{
-                border: '1px solid #e2e8f0',
+                border: '1px solid var(--color-border)',
                 borderRadius: 14,
                 padding: 16,
                 display: 'flex',
@@ -69,14 +70,14 @@ export function CommentsDrawer({ comments, open, onClose }: Props) {
               <div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <strong>{comment.author}</strong>
-                  <span style={{ fontSize: 12, color: '#94a3b8' }}>{comment.timestamp}</span>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-meta)' }}>{comment.timestamp}</span>
                   <span
                     style={{
                       fontSize: 11,
                       textTransform: 'uppercase',
                       letterSpacing: 1,
-                      color: '#2563eb',
-                      border: '1px solid #bfdbfe',
+                      color: 'var(--color-phase-active)',
+                      border: '1px solid var(--color-chip-border)',
                       borderRadius: 999,
                       padding: '2px 8px',
                     }}
@@ -84,7 +85,7 @@ export function CommentsDrawer({ comments, open, onClose }: Props) {
                     {comment.role}
                   </span>
                 </div>
-                <p style={{ margin: '6px 0 0', color: '#475569' }}>{comment.body}</p>
+                <p style={{ margin: '6px 0 0', color: 'var(--color-text-muted)' }}>{comment.body}</p>
               </div>
             </article>
           ))}

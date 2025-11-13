@@ -16,6 +16,7 @@ A front-end-only prototype that sketches the SkillSwap Live experience—progres
 - `src/components/` holds self-contained UI flows (onboarding, discovery, session room, feedback) so they can evolve independently.
 - `src/data/mockSessions.ts` seeds demo content. Swap this file for a live API call to connect real sessions.
 - `src/services/matchmaking.ts` mimics async host matching/diagnostics; replace with a WebSocket call to your signaling service when ready.
+- `src/components/Logo.tsx` centralizes the SkillSwap wordmark + arrow motif so nav, onboarding, and any future surfaces stay in sync without shipping bitmap assets.
 
 ## Key flows
 

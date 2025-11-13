@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { reactToClip } from '../services/api';
 
 interface Props {
@@ -7,6 +7,8 @@ interface Props {
   initialSaves: number;
   initialComments: number;
   onComment: () => void;
+  isSaved?: boolean;
+  onToggleSave?: (next: boolean) => void;
 }
 
 export function EngagementBar({
@@ -15,11 +17,17 @@ export function EngagementBar({
   initialSaves,
   initialComments,
   onComment,
+  isSaved = false,
+  onToggleSave,
 }: Props) {
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(isSaved);
   const [saves, setSaves] = useState(initialSaves);
+
+  useEffect(() => {
+    setSaved(isSaved);
+  }, [isSaved]);
 
   const toggleLike = async () => {
     setLiked((prev) => !prev);
@@ -32,8 +40,10 @@ export function EngagementBar({
   };
 
   const toggleSave = async () => {
-    setSaved((prev) => !prev);
-    setSaves((prev) => (saved ? prev - 1 : prev + 1));
+    const next = !saved;
+    setSaved(next);
+    setSaves((prev) => (next ? prev + 1 : Math.max(prev - 1, 0)));
+    onToggleSave?.(next);
     try {
       await reactToClip(clipId, 'save');
     } catch (error) {
@@ -59,11 +69,11 @@ export function EngagementBar({
   );
 }
 
-const chip = (active: boolean): React.CSSProperties => ({
+const chip = (active: boolean): CSSProperties => ({
   borderRadius: 999,
-  border: '1px solid #cbd5f5',
-  background: active ? '#0f172a' : '#fff',
-  color: active ? '#fff' : '#0f172a',
+  border: '1px solid var(--color-border-strong)',
+  background: active ? 'var(--color-text-primary)' : 'var(--color-surface)',
+  color: active ? 'var(--color-contrast-on-accent)' : 'var(--color-text-primary)',
   padding: '6px 14px',
   cursor: 'pointer',
 });
