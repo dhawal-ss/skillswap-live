@@ -7,11 +7,23 @@ interface SignInDialogProps {
   open: boolean;
   status: 'idle' | 'sending' | 'link-sent' | 'error';
   statusMessage?: string | null;
+  resetStatus?: 'idle' | 'sending' | 'sent' | 'error';
+  resetMessage?: string | null;
   onClose: () => void;
   onSubmit: (payload: { name: string; email: string; provider: Provider; age: number }) => void;
+  onForgotPassword?: (email: string) => void;
 }
 
-export function SignInDialog({ open, onClose, onSubmit, status, statusMessage }: SignInDialogProps) {
+export function SignInDialog({
+  open,
+  onClose,
+  onSubmit,
+  status,
+  statusMessage,
+  resetStatus = 'idle',
+  resetMessage,
+  onForgotPassword,
+}: SignInDialogProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [age, setAge] = useState('');
@@ -20,6 +32,8 @@ export function SignInDialog({ open, onClose, onSubmit, status, statusMessage }:
   const [shaking, setShaking] = useState(false);
   const isSubmitting = status === 'sending';
   const completed = status === 'link-sent';
+  const isResetting = resetStatus === 'sending';
+  const resetCompleted = resetStatus === 'sent';
 
   if (!open) return null;
 
@@ -98,6 +112,28 @@ export function SignInDialog({ open, onClose, onSubmit, status, statusMessage }:
             disabled={completed || isSubmitting}
             style={fieldStyle}
           />
+          <button
+            type="button"
+            onClick={() => {
+              if (!email.trim()) {
+                triggerError('Enter your email to reset your password.');
+                return;
+              }
+              onForgotPassword?.(email.trim().toLowerCase());
+            }}
+            style={{
+              justifySelf: 'flex-start',
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--color-brand)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              opacity: isResetting ? 0.7 : 1,
+            }}
+            disabled={completed || isSubmitting || isResetting}
+          >
+            {resetCompleted ? 'Reset link sent' : isResetting ? 'Sending reset...' : 'Forgot password?'}
+          </button>
         </label>
         <label style={{ display: 'grid', gap: 6 }}>
           <span style={{ fontSize: 14, color: 'var(--color-text-subtle)' }}>Age</span>
@@ -114,17 +150,31 @@ export function SignInDialog({ open, onClose, onSubmit, status, statusMessage }:
         <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-subtle)' }}>
           We’ll send a magic link to your inbox.
         </p>
-        {statusMessage && (
-          <p
-            style={{
-              margin: 0,
-              color: status === 'error' ? 'var(--color-danger)' : 'var(--color-brand)',
-              fontWeight: 600,
-            }}
-          >
-            {statusMessage}
-          </p>
-        )}
+        <div style={{ display: 'grid', gap: 4 }}>
+          {statusMessage && (
+            <p
+              style={{
+                margin: 0,
+                color: status === 'error' ? 'var(--color-danger)' : 'var(--color-brand)',
+                fontWeight: 600,
+              }}
+            >
+              {statusMessage}
+            </p>
+          )}
+          {resetMessage && (
+            <p
+              style={{
+                margin: 0,
+                color: resetStatus === 'error' ? 'var(--color-danger)' : 'var(--color-brand)',
+                fontWeight: 600,
+                fontSize: 13,
+              }}
+            >
+              {resetMessage}
+            </p>
+          )}
+        </div>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', alignItems: 'center' }}>
           <button
             type="button"

@@ -140,6 +140,8 @@ export default function App() {
     'idle',
   );
   const [signInMessage, setSignInMessage] = useState<string | null>(null);
+  const [resetStatus, setResetStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [tourVisible, setTourVisible] = useState(false);
   const [tourStep, setTourStep] = useState(0);
   const seededRef = useRef(false);
@@ -279,6 +281,35 @@ export default function App() {
     [loadProfileForUser],
   );
 
+  const handlePasswordReset = useCallback(
+    async (email: string) => {
+      if (!email) {
+        setResetStatus('error');
+        setResetMessage('Enter your email first.');
+        return;
+      }
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        setResetStatus('error');
+        setResetMessage('Supabase is not configured yet.');
+        return;
+      }
+      setResetStatus('sending');
+      setResetMessage(null);
+      const redirectTo =
+        typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      if (error) {
+        setResetStatus('error');
+        setResetMessage(error.message);
+        return;
+      }
+      setResetStatus('sent');
+      setResetMessage(`Password reset instructions sent to ${email}.`);
+    },
+    [],
+  );
+
   useEffect(() => {
     const supabase = getSupabaseClient();
     if (!supabase) return;
@@ -328,6 +359,8 @@ export default function App() {
     setShowSignIn(false);
     setSignInStatus('idle');
     setSignInMessage(null);
+    setResetStatus('idle');
+    setResetMessage(null);
   }, [authUser]);
 
   useEffect(() => {
@@ -711,6 +744,8 @@ export default function App() {
   const handleOpenSignIn = useCallback(() => {
     setSignInStatus('idle');
     setSignInMessage(null);
+    setResetStatus('idle');
+    setResetMessage(null);
     setShowSignIn(true);
   }, []);
 
@@ -718,6 +753,8 @@ export default function App() {
     setShowSignIn(false);
     setSignInStatus('idle');
     setSignInMessage(null);
+    setResetStatus('idle');
+    setResetMessage(null);
   }, []);
 
   if (phase === 'landing' && !authUser) {
@@ -732,10 +769,13 @@ export default function App() {
           open={showSignIn}
           status={signInStatus}
           statusMessage={signInMessage}
+          resetStatus={resetStatus}
+          resetMessage={resetMessage}
           onClose={handleCloseSignIn}
           onSubmit={({ name, email, age }) => {
             handleMagicLinkRequest({ name, email, age });
           }}
+          onForgotPassword={(email) => handlePasswordReset(email)}
         />
       </main>
     );
