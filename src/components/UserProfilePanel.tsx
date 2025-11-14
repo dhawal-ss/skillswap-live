@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import type { SessionCard, SkillClip, SkillTag, UserProfile } from '../types';
 import { formatSkillTag } from '../lib/tagLabels';
+import { formatRelativeOrTime } from '../lib/formatters';
 
 type ActivityEntry = {
   id: string;
@@ -846,7 +847,7 @@ function ActivityHeatmap({
                 )}
               </div>
               <span style={{ color: 'var(--color-text-meta)', fontSize: 12 }}>
-                {new Date(entry.timestamp).toLocaleTimeString()}
+                {formatRelativeOrTime(new Date(entry.timestamp))}
               </span>
             </article>
           ))}

@@ -3,6 +3,7 @@ import { Skeleton } from './Skeleton';
 import type { SessionCard, SkillClip, UserProfile, CreatorProfile, SkillTag } from '../types';
 import { TrendingCreatorRail } from './TrendingCreators';
 import { formatSkillTag } from '../lib/tagLabels';
+import { formatDateTimeShort } from '../lib/formatters';
 
 interface Props {
   profile: UserProfile;
@@ -86,7 +87,7 @@ function SessionCardView({
           <span style={{ color: 'var(--color-text-subtle)', fontSize: 14 }}>{session.language}</span>
         </div>
         <div style={{ marginLeft: 'auto', textAlign: 'right', color: 'var(--color-text-muted)', fontSize: 14 }}>
-          <div>{session.startTime}</div>
+          <div>{formatDateTimeShort(session.startTime)}</div>
           <div>{session.duration} min · {session.level}</div>
         </div>
       </div>

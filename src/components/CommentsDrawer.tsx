@@ -1,4 +1,5 @@
 import type { ClipComment } from '../types';
+import { formatRelativeOrTime } from '../lib/formatters';
 
 interface Props {
   comments: ClipComment[];
@@ -70,7 +71,9 @@ export function CommentsDrawer({ comments, open, onClose }: Props) {
               <div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <strong>{comment.author}</strong>
-                  <span style={{ fontSize: 12, color: 'var(--color-text-meta)' }}>{comment.timestamp}</span>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-meta)' }}>
+                    {formatRelativeOrTime(new Date(comment.timestamp))}
+                  </span>
                   <span
                     style={{
                       fontSize: 11,
