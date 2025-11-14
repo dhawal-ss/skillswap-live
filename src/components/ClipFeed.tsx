@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback, type MouseEvent } from 'react';
 import type { ClipComment, CreatorProfile, SessionCard, SkillClip, SkillTag } from '../types';
 import { EngagementBar } from './EngagementBar';
 import { CommentsDrawer } from './CommentsDrawer';
@@ -162,6 +162,26 @@ export function ClipFeed({
       trackEvent('clip.completed', { clipId });
     }
   }, []);
+
+  const handleScrub = useCallback(
+    (clipId: string, event: MouseEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      const bar = event.currentTarget;
+      const video = videoRefs.current[clipId];
+      if (!video || !video.duration) return;
+      const rect = bar.getBoundingClientRect();
+      const fraction = Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1);
+      video.currentTime = fraction * video.duration;
+      setProgressMap((prev) => ({
+        ...prev,
+        [clipId]: fraction * 100,
+      }));
+      if (playingClip === clipId) {
+        trackEvent('clip.scrub', { clipId, position: fraction });
+      }
+    },
+    [playingClip],
+  );
 
   const handleClipToggle = useCallback(
     (clipId: string) => {
@@ -596,7 +616,11 @@ export function ClipFeed({
                 onPlaying={() => setLoadingClip((prev) => (prev === clip.id ? null : prev))}
                 onTimeUpdate={() => handleTimeUpdate(clip.id)}
               />
-              <div className="clip-card__progress" aria-hidden="true">
+              <div
+                className="clip-card__progress"
+                aria-hidden="true"
+                onClick={(event) => handleScrub(clip.id, event)}
+              >
                 <span style={{ width: `${progressMap[clip.id] ?? 0}%` }} />
               </div>
               {loadingClip === clip.id && (
