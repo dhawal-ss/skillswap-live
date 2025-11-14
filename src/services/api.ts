@@ -9,7 +9,7 @@ import type {
   SkillClip,
   SkillTag,
 } from '../types';
-import { supabase } from './supabaseClient';
+import { getSupabaseClient } from './supabaseClient';
 import { getViewerId } from '../lib/viewerId';
 
 const clone = <T,>(payload: T): T => JSON.parse(JSON.stringify(payload));
@@ -17,12 +17,16 @@ const clone = <T,>(payload: T): T => JSON.parse(JSON.stringify(payload));
 const simulateNetwork = async <T,>(payload: T, delay = 350): Promise<T> =>
   new Promise((resolve) => setTimeout(() => resolve(clone(payload)), delay));
 
-const fallbackOrThrow = async <T>(operation: () => Promise<T>, fallback: () => Promise<T>) => {
+const fallbackOrThrow = async <T>(
+  operation: (client: NonNullable<ReturnType<typeof getSupabaseClient>>) => Promise<T>,
+  fallback: () => Promise<T>,
+) => {
+  const supabase = getSupabaseClient();
   if (!supabase) {
     return fallback();
   }
   try {
-    return await operation();
+    return await operation(supabase);
   } catch (error) {
     console.error('[supabase] falling back to mocks', error);
     return fallback();
@@ -84,8 +88,8 @@ const mapCommentRecord = (record: Record<string, any>): ClipComment => ({
 
 export const fetchSessions = () =>
   fallbackOrThrow(
-    async () => {
-      const { data, error } = await supabase!
+    async (supabase) => {
+      const { data, error } = await supabase
         .from('sessions')
         .select(
           'id,title,tag,host,host_avatar,demo_video_url,language,start_time,duration,level,rating,status,blurb',
@@ -99,8 +103,8 @@ export const fetchSessions = () =>
 
 export const fetchCreators = () =>
   fallbackOrThrow(
-    async () => {
-      const { data, error } = await supabase!
+    async (supabase) => {
+      const { data, error } = await supabase
         .from('creators')
         .select(
           'id,name,avatar,bio,languages,specialty,followers,upcoming_sessions,clip_count',
@@ -114,8 +118,8 @@ export const fetchCreators = () =>
 
 export const fetchClips = () =>
   fallbackOrThrow(
-    async () => {
-      const { data, error } = await supabase!
+    async (supabase) => {
+      const { data, error } = await supabase
         .from('clips')
         .select(
           'id,title,creator_id,preview_url,video_url,duration,likes,comments,saves,views,tags,cta_session_id',
@@ -129,8 +133,8 @@ export const fetchClips = () =>
 
 export const fetchClipComments = () =>
   fallbackOrThrow(
-    async () => {
-      const { data, error } = await supabase!
+    async (supabase) => {
+      const { data, error } = await supabase
         .from('clip_comments')
         .select('id,clip_id,author,avatar,role,body,timestamp')
         .order('timestamp', { ascending: false });
@@ -142,9 +146,9 @@ export const fetchClipComments = () =>
 
 export const followCreator = (creatorId: string, follow: boolean) =>
   fallbackOrThrow(
-    async () => {
+    async (supabase) => {
       const viewerId = getViewerId();
-      const table = supabase!.from('creator_follows');
+      const table = supabase.from('creator_follows');
       if (follow) {
         const { error } = await table.upsert({ creator_id: creatorId, viewer_id: viewerId });
         if (error) throw error;
@@ -159,9 +163,9 @@ export const followCreator = (creatorId: string, follow: boolean) =>
 
 export const reactToClip = (clipId: string, reaction: 'like' | 'save') =>
   fallbackOrThrow(
-    async () => {
+    async (supabase) => {
       const viewerId = getViewerId();
-      const { error } = await supabase!
+      const { error } = await supabase
         .from('clip_reactions')
         .insert({ clip_id: clipId, reaction, viewer_id: viewerId });
       if (error) throw error;
@@ -172,9 +176,9 @@ export const reactToClip = (clipId: string, reaction: 'like' | 'save') =>
 
 export const submitClipComment = (clipId: string, message: string) =>
   fallbackOrThrow(
-    async () => {
+    async (supabase) => {
       const viewerId = getViewerId();
-      const { data, error } = await supabase!
+      const { data, error } = await supabase
         .from('clip_comments')
         .insert({
           clip_id: clipId,

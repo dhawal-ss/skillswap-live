@@ -1,7 +1,7 @@
 import type { SkillClip, SkillTag } from '../types';
 import { fetchClips } from './api';
 import { CLIP_VIDEO_PLACEHOLDER } from '../lib/media';
-import { supabase } from './supabaseClient';
+import { getSupabaseClient } from './supabaseClient';
 import { getViewerId } from '../lib/viewerId';
 
 const delay = (ms = 250) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -32,6 +32,7 @@ const fallbackUpload = async (draft: {
 export const clipService = {
   list: () => fetchClips(),
   toggleSave: async (clipId: string, saved: boolean) => {
+    const supabase = getSupabaseClient();
     if (!supabase) {
       await delay(140);
       return { clipId, saved };
@@ -53,6 +54,7 @@ export const clipService = {
     duration: number;
     videoUrl?: string;
   }): Promise<SkillClip> => {
+    const supabase = getSupabaseClient();
     if (!supabase) {
       return fallbackUpload(draft);
     }
