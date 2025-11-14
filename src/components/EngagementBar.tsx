@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { reactToClip } from '../services/api';
+import { reactToClip, sendClipReaction } from '../services/api';
 
 interface Props {
   clipId: string;
@@ -9,6 +9,7 @@ interface Props {
   onComment: () => void;
   isSaved?: boolean;
   onToggleSave?: (next: boolean) => void;
+  onReaction?: (emoji: string) => void;
 }
 
 export function EngagementBar({
@@ -19,6 +20,7 @@ export function EngagementBar({
   onComment,
   isSaved = false,
   onToggleSave,
+  onReaction,
 }: Props) {
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(false);
@@ -51,20 +53,51 @@ export function EngagementBar({
     }
   };
 
+  const reactionOptions = [
+    { emoji: '🔥', label: 'Send fire' },
+    { emoji: '👏', label: 'Send clap' },
+    { emoji: '💡', label: 'Send idea' },
+    { emoji: '❤️', label: 'Send heart' },
+  ];
+
+  const sendQuickReaction = async (emoji: string) => {
+    onReaction?.(emoji);
+    try {
+      await sendClipReaction(clipId, emoji);
+    } catch (error) {
+      console.error('Failed to send reaction', error);
+    }
+  };
+
   return (
-    <div style={{ display: 'flex', gap: 12 }}>
-      <button type="button" onClick={toggleLike} style={chip(liked)}>
-        ❤️ {likes}
-      </button>
-      <button type="button" onClick={onComment} style={chip(false)}>
-        💬 {initialComments}
-      </button>
-      <button type="button" onClick={toggleSave} style={chip(saved)}>
-        📌 {saves}
-      </button>
-      <button type="button" style={chip(false)}>
-        ↗️ Share
-      </button>
+    <div style={{ display: 'grid', gap: 6 }}>
+      <div style={{ display: 'flex', gap: 12 }}>
+        <button type="button" onClick={toggleLike} style={chip(liked)}>
+          ❤️ {likes}
+        </button>
+        <button type="button" onClick={onComment} style={chip(false)}>
+          💬 {initialComments}
+        </button>
+        <button type="button" onClick={toggleSave} style={chip(saved)}>
+          📌 {saves}
+        </button>
+        <button type="button" style={chip(false)}>
+          ↗️ Share
+        </button>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {reactionOptions.map((reaction) => (
+          <button
+            key={reaction.emoji}
+            type="button"
+            onClick={() => sendQuickReaction(reaction.emoji)}
+            style={pill}
+            aria-label={reaction.label}
+          >
+            {reaction.emoji}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -77,3 +110,13 @@ const chip = (active: boolean): CSSProperties => ({
   padding: '6px 14px',
   cursor: 'pointer',
 });
+
+const pill: CSSProperties = {
+  borderRadius: 999,
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-surface)',
+  color: 'var(--color-text-primary)',
+  padding: '4px 12px',
+  cursor: 'pointer',
+  fontSize: 18,
+};

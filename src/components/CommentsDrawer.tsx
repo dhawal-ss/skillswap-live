@@ -72,7 +72,13 @@ export function CommentsDrawer({ comments, open, onClose }: Props) {
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <strong>{comment.author}</strong>
                   <span style={{ fontSize: 12, color: 'var(--color-text-meta)' }}>
-                    {formatRelativeOrTime(new Date(comment.timestamp))}
+                    {(() => {
+                      const date = new Date(comment.timestamp);
+                      if (Number.isNaN(date.getTime())) {
+                        return comment.timestamp;
+                      }
+                      return formatRelativeOrTime(date);
+                    })()}
                   </span>
                   <span
                     style={{

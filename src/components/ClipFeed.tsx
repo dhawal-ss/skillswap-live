@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, useCallback, type MouseEvent } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+  type MouseEvent,
+  type CSSProperties,
+} from 'react';
 import type { ClipComment, CreatorProfile, SessionCard, SkillClip, SkillTag } from '../types';
 import { EngagementBar } from './EngagementBar';
 import { CommentsDrawer } from './CommentsDrawer';
@@ -85,6 +93,8 @@ export function ClipFeed({
   const cardRefs = useRef<Record<string, HTMLElement | null>>({});
   const completedClipsRef = useRef(new Set<string>());
   const highlightLabel = highlightTag ? formatSkillTag(highlightTag) : null;
+  const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
+  const snackbarTimer = useRef<number | null>(null);
 
   const creatorMap = useMemo(() => {
     return creators.reduce<Record<string, CreatorProfile>>((acc, creator) => {
@@ -123,6 +133,17 @@ export function ClipFeed({
     return comments.filter((comment) => comment.clipId === openComments);
   }, [comments, openComments]);
 
+  const showSnackbar = useCallback((message: string) => {
+    setSnackbarMessage(message);
+    if (snackbarTimer.current) {
+      window.clearTimeout(snackbarTimer.current);
+    }
+    snackbarTimer.current = window.setTimeout(() => {
+      setSnackbarMessage(null);
+      snackbarTimer.current = null;
+    }, 2200);
+  }, []);
+
   useEffect(() => {
     Object.values(videoRefs.current).forEach((video) => {
       if (video) {
@@ -138,6 +159,9 @@ export function ClipFeed({
       }
       if (composerDraft.videoUrl?.startsWith('blob:')) {
         URL.revokeObjectURL(composerDraft.videoUrl);
+      }
+      if (snackbarTimer.current) {
+        window.clearTimeout(snackbarTimer.current);
       }
     };
   }, [composerDraft.videoUrl]);
@@ -674,35 +698,39 @@ export function ClipFeed({
                 </div>
               )}
             </div>
-            <div className="clip-card__body">
-              <div className="clip-card__creator">
-                <img
-                  src={creatorAvatar}
-                  alt={creatorName}
-                  width={48}
-                  height={48}
-                  style={{ borderRadius: '50%', objectFit: 'cover' }}
-                />
-                <div>
-                  <strong>{creatorName}</strong>
-                  <p style={{ margin: 0, color: 'var(--color-text-subtle)', fontSize: 14 }}>
-                    {clip.title}
-                  </p>
+              <div className="clip-card__body">
+                <div className="clip-card__creator">
+                  <img
+                    src={creatorAvatar}
+                    alt={creatorName}
+                    width={48}
+                    height={48}
+                    style={{ borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                  <div>
+                    <strong>{creatorName}</strong>
+                    <p style={{ margin: 0, color: 'var(--color-text-subtle)', fontSize: 14 }}>
+                      {clip.title}
+                    </p>
+                  </div>
+                  <span style={{ marginLeft: 'auto', color: 'var(--color-text-muted)', fontSize: 13 }}>
+                    👁 {clip.views?.toLocaleString() ?? '—'}
+                  </span>
                 </div>
-                <span style={{ marginLeft: 'auto', color: 'var(--color-text-muted)', fontSize: 13 }}>
-                  👁 {clip.views?.toLocaleString() ?? '—'}
-                </span>
-              </div>
 
-              <EngagementBar
-                clipId={clip.id}
-                initialLikes={clip.likes}
-                initialSaves={clip.saves}
-                initialComments={clip.comments}
-                onComment={() => setOpenComments(clip.id)}
-                isSaved={isSaved}
-                onToggleSave={(next) => onToggleSave?.(clip.id, next)}
-              />
+                <EngagementBar
+                  clipId={clip.id}
+                  initialLikes={clip.likes}
+                  initialSaves={clip.saves}
+                  initialComments={clip.comments}
+                  onComment={() => setOpenComments(clip.id)}
+                  isSaved={isSaved}
+                  onToggleSave={(next) => onToggleSave?.(clip.id, next)}
+                  onReaction={(emoji) => {
+                    showSnackbar(`${emoji} sent to ${creatorName}`);
+                    trackEvent('clip.reaction', { clipId: clip.id, reaction: emoji });
+                  }}
+                />
               {onTuneTag && primaryTag && (
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                   <button
@@ -730,6 +758,9 @@ export function ClipFeed({
         open={Boolean(openComments)}
         onClose={() => setOpenComments(null)}
       />
+      {snackbarMessage && (
+        <div style={snackbarStyle}>{snackbarMessage}</div>
+      )}
     </section>
   );
 }
@@ -737,3 +768,18 @@ export function ClipFeed({
 function getClipAffinity(clip: SkillClip, affinity: TagAffinityMap): number {
   return clip.tags.reduce((score, tag) => Math.max(score, affinity[tag] ?? 0), 0);
 }
+
+const snackbarStyle: CSSProperties = {
+  position: 'fixed',
+  bottom: 24,
+  left: '50%',
+  transform: 'translateX(-50%)',
+  background: 'var(--color-surface)',
+  border: '1px solid var(--color-border)',
+  borderRadius: 999,
+  padding: '10px 24px',
+  boxShadow: '0 15px 40px rgba(15, 23, 42, 0.25)',
+  color: 'var(--color-text-primary)',
+  fontWeight: 600,
+  zIndex: 60,
+};

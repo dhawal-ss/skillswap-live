@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { followCreator } from '../services/api';
 import { Skeleton } from './Skeleton';
 import type { CreatorProfile, SkillClip, SkillTag } from '../types';
+import { formatSkillTag } from '../lib/tagLabels';
 
 interface Props {
   creators: CreatorProfile[];
@@ -19,6 +20,8 @@ export function ChannelHub({
   isLoading = false,
 }: Props) {
   const [following, setFollowing] = useState<Set<string>>(new Set());
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<number | null>(null);
 
   const clipCountByCreator = useMemo(() => {
     return clips.reduce<Record<string, number>>((acc, clip) => {
@@ -54,10 +57,28 @@ export function ChannelHub({
     });
     try {
       await followCreator(id, !following.has(id));
+      const creator = creators.find((item) => item.id === id);
+      const name = creator?.name ?? 'this creator';
+      setToast(!following.has(id) ? `Following ${name}` : `Unfollowed ${name}`);
+      if (toastTimer.current) {
+        window.clearTimeout(toastTimer.current);
+      }
+      toastTimer.current = window.setTimeout(() => {
+        setToast(null);
+        toastTimer.current = null;
+      }, 2200);
     } catch (error) {
       console.error('Failed to sync follow state', error);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) {
+        window.clearTimeout(toastTimer.current);
+      }
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -148,6 +169,9 @@ export function ChannelHub({
               <span>{creator.upcomingSessions} upcoming</span>
               <span>{clipCountByCreator[creator.id] ?? 0} clips</span>
             </div>
+            <p style={{ margin: 0, color: 'var(--color-text-subtle)', fontSize: 13 }}>
+              Fans love {creator.specialty[0] ? formatSkillTag(creator.specialty[0]) : 'their sessions'}
+            </p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {creator.specialty.map((tag) => (
                 <span
@@ -167,21 +191,43 @@ export function ChannelHub({
             <button
               type="button"
               onClick={() => toggleFollow(creator.id)}
-            style={{
-              borderRadius: 14,
-              border: 'none',
-              padding: '12px 18px',
-              background: following.has(creator.id) ? 'var(--color-pill-bg)' : 'var(--color-text-primary)',
-              color: following.has(creator.id) ? 'var(--color-brand)' : 'var(--color-contrast-on-accent)',
-              cursor: 'pointer',
-              fontWeight: 600,
-            }}
-          >
-            {following.has(creator.id) ? 'Following' : 'Follow'}
+              style={{
+                borderRadius: 999,
+                border: 'none',
+                padding: '12px 20px',
+                background: following.has(creator.id)
+                  ? 'var(--color-pill-bg)'
+                  : 'linear-gradient(120deg, var(--color-text-primary), var(--color-brand))',
+                color: following.has(creator.id) ? 'var(--color-brand)' : 'var(--color-contrast-on-accent)',
+                cursor: 'pointer',
+                fontWeight: 600,
+                boxShadow: following.has(creator.id)
+                  ? 'none'
+                  : '0 15px 30px rgba(15,23,42,0.25)',
+              }}
+            >
+              {following.has(creator.id) ? 'Following' : 'Follow'}
             </button>
           </article>
         ))}
       </div>
+      {toast && (
+        <div style={toastStyle}>{toast}</div>
+      )}
     </section>
   );
 }
+
+const toastStyle = {
+  position: 'fixed' as const,
+  bottom: 32,
+  right: 32,
+  background: 'var(--color-surface)',
+  border: '1px solid var(--color-border)',
+  borderRadius: 16,
+  padding: '12px 18px',
+  boxShadow: '0 15px 40px rgba(15,23,42,0.25)',
+  color: 'var(--color-text-primary)',
+  fontWeight: 600,
+  zIndex: 40,
+};

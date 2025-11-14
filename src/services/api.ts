@@ -174,6 +174,19 @@ export const reactToClip = (clipId: string, reaction: 'like' | 'save') =>
     () => simulateNetwork({ ok: true, clipId, reaction }, 250),
   );
 
+export const sendClipReaction = (clipId: string, emoji: string) =>
+  fallbackOrThrow(
+    async (supabase) => {
+      const viewerId = getViewerId();
+      const { error } = await supabase
+        .from('clip_reactions')
+        .insert({ clip_id: clipId, reaction: emoji, viewer_id: viewerId });
+      if (error) throw error;
+      return { ok: true, clipId, emoji };
+    },
+    () => simulateNetwork({ ok: true, clipId, emoji }, 200),
+  );
+
 export const submitClipComment = (clipId: string, message: string) =>
   fallbackOrThrow(
     async (supabase) => {

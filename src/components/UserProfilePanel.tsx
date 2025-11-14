@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import type { SessionCard, SkillClip, SkillTag, UserProfile } from '../types';
 import { formatSkillTag } from '../lib/tagLabels';
-import { formatRelativeOrTime } from '../lib/formatters';
+import { formatRelativeOrTime, formatDateTimeShort } from '../lib/formatters';
 
 type ActivityEntry = {
   id: string;
@@ -315,6 +315,8 @@ export function UserProfilePanel({
         entries={activityLog}
         selectedDay={selectedActivityDay}
         onSelectDay={setSelectedActivityDay}
+        avatarUrl={profile.avatarUrl}
+        displayName={profile.name}
       />
 
       <section>
@@ -427,7 +429,9 @@ export function UserProfilePanel({
                     <strong>{session.title}</strong>
                     <p style={{ margin: '4px 0 0', color: 'var(--color-text-muted)' }}>{session.blurb}</p>
                   </div>
-                  <span style={{ color: 'var(--color-text-meta)' }}>{session.startTime}</span>
+                  <span style={{ color: 'var(--color-text-meta)' }}>
+                    {formatDateTimeShort(session.startTime)}
+                  </span>
                 </div>
                 <div style={{ display: 'flex', gap: 16, marginTop: 12, color: 'var(--color-text-muted)', fontSize: 14 }}>
                   <span>{session.duration} min</span>
@@ -759,10 +763,14 @@ function ActivityHeatmap({
   entries,
   selectedDay,
   onSelectDay,
+  avatarUrl,
+  displayName,
 }: {
   entries: ActivityEntry[];
   selectedDay: string | null;
   onSelectDay: (day: string | null) => void;
+  avatarUrl?: string;
+  displayName?: string;
 }) {
   if (entries.length === 0) {
     return (
@@ -786,6 +794,10 @@ function ActivityHeatmap({
     acc[day].push(entry);
     return acc;
   }, {});
+
+  const fallbackAvatar =
+    avatarUrl ??
+    `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName ?? 'You')}`;
 
   const intensities = days.map((day) => grouped[day]?.length ?? 0);
   const max = Math.max(...intensities, 1);
@@ -839,7 +851,18 @@ function ActivityHeatmap({
                 alignItems: 'center',
               }}
             >
-              <span style={{ fontSize: '1.25rem' }}>{entry.icon ?? '•'}</span>
+              <div style={{ position: 'relative' }}>
+                <img
+                  src={fallbackAvatar}
+                  alt={displayName ?? 'You'}
+                  width={40}
+                  height={40}
+                  style={{ borderRadius: '50%', objectFit: 'cover' }}
+                />
+                {entry.icon && (
+                  <span style={activityBadgeStyle}>{entry.icon}</span>
+                )}
+              </div>
               <div style={{ flex: 1 }}>
                 <strong>{entry.label}</strong>
                 {entry.detail && (
@@ -847,7 +870,13 @@ function ActivityHeatmap({
                 )}
               </div>
               <span style={{ color: 'var(--color-text-meta)', fontSize: 12 }}>
-                {formatRelativeOrTime(new Date(entry.timestamp))}
+                {(() => {
+                  const date = new Date(entry.timestamp);
+                  if (Number.isNaN(date.getTime())) {
+                    return entry.timestamp;
+                  }
+                  return formatRelativeOrTime(date);
+                })()}
               </span>
             </article>
           ))}
@@ -889,6 +918,18 @@ const selectStyle: CSSProperties = {
   minWidth: 160,
   background: 'var(--color-surface)',
   color: 'var(--color-text-primary)',
+};
+
+const activityBadgeStyle: CSSProperties = {
+  position: 'absolute',
+  bottom: -4,
+  right: -4,
+  borderRadius: '50%',
+  background: 'var(--color-brand)',
+  color: 'var(--color-contrast-on-accent)',
+  fontSize: 12,
+  padding: '2px 6px',
+  border: '2px solid var(--color-surface)',
 };
 
 const primaryButton: CSSProperties = {
