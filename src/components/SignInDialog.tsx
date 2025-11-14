@@ -5,17 +5,21 @@ type Provider = 'email';
 
 interface SignInDialogProps {
   open: boolean;
+  status: 'idle' | 'sending' | 'link-sent' | 'error';
+  statusMessage?: string | null;
   onClose: () => void;
   onSubmit: (payload: { name: string; email: string; provider: Provider; age: number }) => void;
 }
 
-export function SignInDialog({ open, onClose, onSubmit }: SignInDialogProps) {
+export function SignInDialog({ open, onClose, onSubmit, status, statusMessage }: SignInDialogProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [age, setAge] = useState('');
   const provider: Provider = 'email';
   const [error, setError] = useState<string | null>(null);
   const [shaking, setShaking] = useState(false);
+  const isSubmitting = status === 'sending';
+  const completed = status === 'link-sent';
 
   if (!open) return null;
 
@@ -80,6 +84,7 @@ export function SignInDialog({ open, onClose, onSubmit }: SignInDialogProps) {
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Your name"
+            disabled={completed || isSubmitting}
             style={fieldStyle}
           />
         </label>
@@ -90,6 +95,7 @@ export function SignInDialog({ open, onClose, onSubmit }: SignInDialogProps) {
             onChange={(event) => setEmail(event.target.value)}
             placeholder="you@example.com"
             type="email"
+            disabled={completed || isSubmitting}
             style={fieldStyle}
           />
         </label>
@@ -101,13 +107,25 @@ export function SignInDialog({ open, onClose, onSubmit }: SignInDialogProps) {
             placeholder="13+"
             type="number"
             min={13}
+            disabled={completed || isSubmitting}
             style={fieldStyle}
           />
         </label>
         <p style={{ margin: 0, fontSize: 13, color: 'var(--color-text-subtle)' }}>
           We’ll send a magic link to your inbox.
         </p>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+        {statusMessage && (
+          <p
+            style={{
+              margin: 0,
+              color: status === 'error' ? 'var(--color-danger)' : 'var(--color-brand)',
+              fontWeight: 600,
+            }}
+          >
+            {statusMessage}
+          </p>
+        )}
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', alignItems: 'center' }}>
           <button
             type="button"
             onClick={onClose}
@@ -123,18 +141,18 @@ export function SignInDialog({ open, onClose, onSubmit }: SignInDialogProps) {
           </button>
           <button
             type="submit"
-            disabled={!name.trim() || !email.trim() || !age.trim()}
-          style={{
-            borderRadius: 999,
-            border: 'none',
-            padding: '10px 20px',
-            background: 'var(--color-brand)',
-            color: 'var(--color-contrast-on-accent)',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Continue
+            disabled={!name.trim() || !email.trim() || !age.trim() || isSubmitting || completed}
+            style={{
+              borderRadius: 999,
+              border: 'none',
+              padding: '10px 20px',
+              background: 'var(--color-brand)',
+              color: 'var(--color-contrast-on-accent)',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            {completed ? 'Link sent' : isSubmitting ? 'Sending...' : 'Continue'}
           </button>
         </div>
       </form>

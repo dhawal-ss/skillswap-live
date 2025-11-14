@@ -7,6 +7,7 @@ import {
   type ReactNode,
   type CSSProperties,
 } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { OnboardingFlow } from './components/OnboardingFlow';
 import { DiscoveryBoard } from './components/DiscoveryBoard';
 import { SessionRoom } from './components/SessionRoom';
@@ -40,6 +41,7 @@ import { GuidedTour } from './components/GuidedTour';
 import { filterSessions } from './lib/filtering';
 import { SESSION_VIDEO_PLACEHOLDER, CLIP_VIDEO_PLACEHOLDER } from './lib/media';
 import { orderedSkillTags, formatSkillTag } from './lib/tagLabels';
+import { getSupabaseClient } from './services/supabaseClient';
 
 type TagAffinityMap = Partial<Record<SkillTag, number>>;
 
@@ -134,6 +136,10 @@ export default function App() {
   const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
   const [showClipComposer, setShowClipComposer] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
+  const [signInStatus, setSignInStatus] = useState<'idle' | 'sending' | 'link-sent' | 'error'>(
+    'idle',
+  );
+  const [signInMessage, setSignInMessage] = useState<string | null>(null);
   const [tourVisible, setTourVisible] = useState(false);
   const [tourStep, setTourStep] = useState(0);
   const seededRef = useRef(false);
@@ -168,6 +174,18 @@ export default function App() {
     window.localStorage.setItem(`skillswap-profile-${user.id}`, JSON.stringify(nextProfile));
   }, []);
 
+  const resetAppState = useCallback(() => {
+    setProfile(null);
+    setPhase('landing');
+    setActivityLog([]);
+    setUserClips([]);
+    setUserSessions([]);
+    setSavedClipIds([]);
+    setClipViewMode('all');
+    seededRef.current = false;
+    tourTriggeredRef.current = false;
+  }, []);
+
   const loadProfileForUser = useCallback(
     (user: AuthUser) => {
       if (typeof window === 'undefined') return false;
@@ -189,43 +207,128 @@ export default function App() {
     [],
   );
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const storedUser = window.localStorage.getItem('skillswap-auth-user');
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser) as AuthUser;
-        setAuthUser(parsed);
-        loadProfileForUser(parsed);
-      } catch (error) {
-        console.error('Failed to restore auth user', error);
+  const applySupabaseUser = useCallback(
+    (user: User | null) => {
+      if (!user) {
+        setAuthUser(null);
+        resetAppState();
+        return;
       }
-    }
-  }, [loadProfileForUser]);
+      const displayName =
+        (user.user_metadata?.display_name as string | undefined) ??
+        user.email?.split('@')[0] ??
+        'SkillSwap member';
+      const rawAge = user.user_metadata?.age as number | string | undefined;
+      const parsedAge =
+        typeof rawAge === 'number' ? rawAge : rawAge ? Number(rawAge) : undefined;
+      const mapped: AuthUser = {
+        id: user.id,
+        name: displayName,
+        email: user.email ?? '',
+        provider: 'email',
+        age: Number.isFinite(parsedAge) ? Number(parsedAge) : undefined,
+        avatarUrl: (user.user_metadata?.avatar_url as string | undefined) ?? undefined,
+      };
+      setAuthUser(mapped);
+      setSignInStatus('idle');
+      setSignInMessage(null);
+      loadProfileForUser(mapped);
+    },
+    [loadProfileForUser, resetAppState],
+  );
+
+  const handleMagicLinkRequest = useCallback(
+    async ({ name, email, age }: { name: string; email: string; age: number }) => {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        const mockUser: AuthUser = {
+          id: email,
+          name,
+          email,
+          provider: 'email',
+          age,
+        };
+        setAuthUser(mockUser);
+        loadProfileForUser(mockUser);
+        setShowSignIn(false);
+        setSignInStatus('idle');
+        setSignInMessage(null);
+        return;
+      }
+      setSignInStatus('sending');
+      setSignInMessage(null);
+      const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          data: {
+            display_name: name,
+            age,
+          },
+          emailRedirectTo: redirectTo,
+        },
+      });
+      if (error) {
+        setSignInStatus('error');
+        setSignInMessage(error.message);
+        return;
+      }
+      setSignInStatus('link-sent');
+      setSignInMessage(`Magic link sent to ${email}. Check your inbox to continue.`);
+    },
+    [loadProfileForUser],
+  );
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    let mounted = true;
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted) return;
+      if (error) {
+        console.error('Failed to fetch Supabase session', error);
+        return;
+      }
+      applySupabaseUser(data.session?.user ?? null);
+    });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySupabaseUser(session?.user ?? null);
+    });
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [applySupabaseUser]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (authUser) {
-      window.localStorage.setItem('skillswap-auth-user', JSON.stringify(authUser));
-      loadProfileForUser(authUser);
-      const savedKey = `skillswap-saved-${authUser.id}`;
-      const savedRaw = window.localStorage.getItem(savedKey);
-      if (savedRaw) {
-        try {
-          const parsed = JSON.parse(savedRaw) as string[];
-          setSavedClipIds(parsed);
-        } catch {
-          setSavedClipIds([]);
-        }
-      } else {
+    if (!authUser) {
+      setSavedClipIds([]);
+      setClipViewMode('all');
+      return;
+    }
+    const savedKey = `skillswap-saved-${authUser.id}`;
+    const savedRaw = window.localStorage.getItem(savedKey);
+    if (savedRaw) {
+      try {
+        const parsed = JSON.parse(savedRaw) as string[];
+        setSavedClipIds(parsed);
+      } catch {
         setSavedClipIds([]);
       }
     } else {
-      window.localStorage.removeItem('skillswap-auth-user');
       setSavedClipIds([]);
-      setClipViewMode('all');
     }
-  }, [authUser, loadProfileForUser]);
+  }, [authUser]);
+
+  useEffect(() => {
+    if (!authUser) return;
+    setShowSignIn(false);
+    setSignInStatus('idle');
+    setSignInMessage(null);
+  }, [authUser]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -578,21 +681,17 @@ export default function App() {
     setShowClipComposer(false);
   };
 
-  const handleSignOut = useCallback(() => {
-    setAuthUser(null);
-    setProfile(null);
-    setPhase('landing');
-    setActivityLog([]);
-    setUserClips([]);
-    setUserSessions([]);
-    setSavedClipIds([]);
-    setClipViewMode('all');
-    seededRef.current = false;
-    tourTriggeredRef.current = false;
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem('skillswap-auth-user');
+  const handleSignOut = useCallback(async () => {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Failed to sign out', error);
+      }
+    } else {
+      applySupabaseUser(null);
     }
-  }, []);
+  }, [applySupabaseUser]);
 
   const handleWatchClip = useCallback(
     (clipId: string) => {
@@ -609,29 +708,33 @@ export default function App() {
     [],
   );
 
+  const handleOpenSignIn = useCallback(() => {
+    setSignInStatus('idle');
+    setSignInMessage(null);
+    setShowSignIn(true);
+  }, []);
+
+  const handleCloseSignIn = useCallback(() => {
+    setShowSignIn(false);
+    setSignInStatus('idle');
+    setSignInMessage(null);
+  }, []);
+
   if (phase === 'landing' && !authUser) {
     return (
       <main>
         <MissionHero
           onBegin={() => {
-            setShowSignIn(true);
+            handleOpenSignIn();
           }}
         />
         <SignInDialog
           open={showSignIn}
-          onClose={() => setShowSignIn(false)}
-          onSubmit={({ name, email, provider, age }) => {
-            const user: AuthUser = {
-              id: email,
-              name,
-              email,
-              provider,
-              age,
-            };
-            setAuthUser(user);
-            setShowSignIn(false);
-            const hasProfile = loadProfileForUser(user);
-            setPhase(hasProfile ? 'discovery' : 'onboarding');
+          status={signInStatus}
+          statusMessage={signInMessage}
+          onClose={handleCloseSignIn}
+          onSubmit={({ name, email, age }) => {
+            handleMagicLinkRequest({ name, email, age });
           }}
         />
       </main>
