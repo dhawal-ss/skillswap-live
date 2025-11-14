@@ -549,6 +549,10 @@ export function ClipFeed({
       )}
       {visibleClips.map((clip) => {
         const creator = creatorMap[clip.creatorId];
+        const creatorName = creator?.name ?? 'Community creator';
+        const creatorAvatar =
+          creator?.avatar ??
+          'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=200&q=80';
         const primaryTag = clip.tags[0];
         const primaryTagLabel = primaryTag ? formatSkillTag(primaryTag) : null;
         const recommended = highlightTag ? clip.tags.includes(highlightTag) : false;
@@ -649,14 +653,14 @@ export function ClipFeed({
             <div className="clip-card__body">
               <div className="clip-card__creator">
                 <img
-                  src={creator.avatar}
-                  alt={creator.name}
+                  src={creatorAvatar}
+                  alt={creatorName}
                   width={48}
                   height={48}
-                  style={{ borderRadius: '50%' }}
+                  style={{ borderRadius: '50%', objectFit: 'cover' }}
                 />
                 <div>
-                  <strong>{creator.name}</strong>
+                  <strong>{creatorName}</strong>
                   <p style={{ margin: 0, color: 'var(--color-text-subtle)', fontSize: 14 }}>
                     {clip.title}
                   </p>
