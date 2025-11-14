@@ -26,6 +26,14 @@ A front-end-only prototype that sketches the SkillSwap Live experience—progres
 5. Visit the generated `*.vercel.app` URL to smoke-test onboarding, clip playback, saved mode, and analytics logging.
 6. Every push to `main` triggers a new production deploy; feature branches automatically get preview URLs for review.
 
+## Backend (Supabase) quick-start
+
+1. Create a Supabase project, then run `supabase/schema.sql` in the SQL editor to provision tables for clips, sessions, creators, comments, saves, and reactions.
+2. Create a public storage bucket (e.g., `clip-media`) for MP4/WEBM uploads and drop a few seed videos/previews.
+3. Copy `.env.example` to `.env.local` and fill in `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`. Add the same keys in Vercel’s project settings.
+4. Data fetchers in `src/services/api.ts` and the `clipService` automatically talk to Supabase when those env vars are present; without them the UI falls back to local mock data.
+5. When you’re ready for real authentication, replace the temporary viewer IDs in `src/lib/viewerId.ts` with `supabase.auth` and tighten the row-level security policies accordingly.
+
 ## Architecture overview
 
 - **Vite + React + TypeScript** keep iteration fast while retaining type safety.
